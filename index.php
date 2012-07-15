@@ -3,7 +3,10 @@
 
 	try
 	{
-		$KV = new kv;
+		$KV = new kv(
+			array('Enabled' => false),
+			array('Enabled' => true)
+		);
 	}
 	catch (Exception $E)
 	{
@@ -23,4 +26,10 @@
 	echo '<hr />';
 	kv::clear_all();
 	echo kv::get('Value1'); // Outputs "";
+	echo '<hr />';
+	kv::set('TestNumber', 42);
+	echo $KV['TestNumber'];
+	echo '<hr />';
+	kv::inc('TestNumber', 2);
+	echo $KV['TestNumber'];
 ?>

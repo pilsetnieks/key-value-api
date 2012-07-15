@@ -5,19 +5,57 @@
  * Static access gives more possibilities, of course.
  *
  * @package key-value-api
+ * @uses pecl/memcached
+ * @uses pecl/apc
  * @version 0.1
  * @author Martins Pilsetnieks
  */
 	class kv implements ArrayAccess
 	{
+		private static $DefaultAPCOptions = array(
+			'Enabled' => true
+		);
+		private static $DefaultMemcacheOptions = array(
+			'Enabled' => true,
+			'Servers' => array(
+				array('localhost', 11211)
+			)
+		);
+
+		private static $APCOptions = array();
+		private static $MemcacheOptions = array();
+
+		private static $APCOn = false;
+		private static $MemcacheOn = false;
+
+		private static $Memcache = null;
+
 		/**
 		 * Does nothing for now (with APC), maybe will do something with memcache
 		 */
-		public function __construct()
+		public function __construct(array $APCOptions = null, array $MemcacheOptions = null)
 		{
-			if (!ini_get('apc.enabled') || !function_exists('apc_store'))
+			if ($APCOptions && !empty($APCOptions['Enabled']) && !ini_get('apc.enabled') || !function_exists('apc_store'))
 			{
 				throw new Exception('APC not available');
+			}
+			elseif ($APCOptions)
+			{
+				self::$APCOptions = array_merge(self::$DefaultAPCOptions, $APCOptions);
+				self::$APCOn = !empty(self::$APCOptions['Enabled']);
+			}
+
+			if ($MemcacheOptions && !empty($MemcacheOptions['Enabled']) && !class_exists('Memcached'))
+			{
+				throw new Excption('Memcache not available');
+			}
+			elseif ($MemcacheOptions)
+			{
+				self::$MemcacheOptions = array_merge(self::$DefaultMemcacheOptions, $MemcacheOptions);
+				self::$MemcacheOn = !empty(self::$MemcacheOptions['Enabled']);
+
+				self::$Memcache = new Memcached;
+				self::$Memcache -> addServers(self::$MemcacheOptions['Servers']);
 			}
 		}
 
@@ -30,7 +68,14 @@
 		 */
 		public static function get($Key)
 		{
-			return apc_fetch($Key);
+			if (self::$APCOn)
+			{
+				return apc_fetch($Key);
+			}
+			if (self::$MemcacheOn)
+			{
+				return self::$Memcache -> get($Key);
+			}
 		}
 
 		/**
@@ -44,7 +89,22 @@
 		 */
 		public static function set($Key, $Value, $TTL = 0)
 		{
-			return apc_store($Key, $Value, $TTL);
+			$Status = true;
+			if (self::$APCOn)
+			{
+				$Status = $Status && apc_store($Key, $Value, $TTL);
+			}
+			if (self::$MemcacheOn)
+			{
+				// If the TTL is longer than 30 days, memcache considers it to be a Unix timestamp instead of seconds to live
+				if ($TTL > 2592000)
+				{
+					$TTL = time() + $TTL;
+				}
+
+				$Status = $Status && self::$Memcache -> set($Key, $Value, $TTL);
+			}
+			return $Status;
 		}
 
 		/**
@@ -58,12 +118,21 @@
 		 */
 		public static function wrap($Key, $Callback = null)
 		{
-			$Value = self::get($Key);
-			if ($Value === false && is_callable($Callback))
+			if (self::$APCOn)
 			{
-				$Value = call_user_func($Callback);
-				self::set($Key, $Value);
+				$Value = self::get($Key);
+				if ($Value === false && is_callable($Callback))
+				{
+					$Value = call_user_func($Callback);
+					self::set($Key, $Value);
+				}
 			}
+
+			if (self::$MemcacheOn)
+			{
+				$Value = self::$Memcache -> get($Key, $Callback);
+			}
+
 			return $Value;
 		}
 
@@ -77,7 +146,15 @@
 		 */
 		public static function inc($Key, $Value = 1)
 		{
-			return apc_inc($Key, (int)$Value);
+			if (self::$MemcacheOn)
+			{
+				$Result = self::$Memcache -> increment($Key, $Value);
+			}
+			if (self::$APCOn)
+			{
+				$Result = apc_inc($Key, (int)$Value);
+			}
+			return $Result;
 		}
 
 		/**
@@ -90,7 +167,15 @@
 		 */
 		public static function dec($Key, $Value = 1)
 		{
-			return apc_dec($Key, (int)$Value);
+			if (self::$MemcacheOn)
+			{
+				$Result = self::$Memcache -> decrement($Key, $Value);
+			}
+			if (self::$APCOn)
+			{
+				$Result = apc_dec($Key, (int)$Value);
+			}
+			return $Result;
 		}
 
 		/**
@@ -100,7 +185,16 @@
 		 */
 		public static function clear($Key)
 		{
-			return apc_delete($Key);
+			if (self::$MemcacheOn)
+			{
+				$Status = self::$Memcache -> delete($Key);
+			}
+			if (self::$APCOn)
+			{
+				$Status = apc_delete($Key);
+			}
+
+			return $Status;
 		}
 
 		/**
@@ -108,7 +202,15 @@
 		 */
 		public static function clear_all()
 		{
-			return apc_clear_cache('user');
+			if (self::$APCOn)
+			{
+				$Status = apc_clear_cache('user');
+			}
+			if (self::$MemcacheOn)
+			{
+				$Status = self::$Memcache -> flush();
+			}
+			return $Status;
 		}
 
 		// !ArrayAccess methods
@@ -121,7 +223,15 @@
 		 */
 		public function offsetExists($Offset)
 		{
-			return apc_exists($Offset);
+			if (self::$APCOn)
+			{
+				return apc_exists($Offset);
+			}
+			if (self::$MemcacheOn)
+			{
+				$Val = self::$Memcache -> get($Offset);
+				return !(self::$Memcache -> getResultCode() == Memcached::RES_NOTFOUND);
+			}
 		}
 
 		/**
