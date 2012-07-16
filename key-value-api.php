@@ -7,7 +7,7 @@
  * @package key-value-api
  * @uses pecl/memcached
  * @uses pecl/apc
- * @version 0.1
+ * @version 0.2.1
  * @author Martins Pilsetnieks
  */
 	class kv implements ArrayAccess
@@ -146,6 +146,12 @@
 		 */
 		public static function inc($Key, $Value = 1)
 		{
+			$Value = (int)$Value;
+			if ($Value <= 0)
+			{
+				return false;
+			}
+
 			if (self::$MemcacheOn)
 			{
 				$Result = self::$Memcache -> increment($Key, $Value);
@@ -167,6 +173,12 @@
 		 */
 		public static function dec($Key, $Value = 1)
 		{
+			$Value = (int)$Value;
+			if ($Value <= 0)
+			{
+				return false;
+			}
+
 			if (self::$MemcacheOn)
 			{
 				$Result = self::$Memcache -> decrement($Key, $Value);
