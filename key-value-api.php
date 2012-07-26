@@ -7,7 +7,7 @@
  * @package key-value-api
  * @uses pecl/memcached
  * @uses pecl/apc
- * @version 0.2.1
+ * @version 0.2.2
  * @author Martins Pilsetnieks
  */
 	class kv implements ArrayAccess
@@ -47,7 +47,7 @@
 
 			if ($MemcacheOptions && !empty($MemcacheOptions['Enabled']) && !class_exists('Memcached'))
 			{
-				throw new Excption('Memcache not available');
+				throw new Excption('Memcached not available (Memcached extension, not Memcache)');
 			}
 			elseif ($MemcacheOptions)
 			{
@@ -72,7 +72,7 @@
 			{
 				return apc_fetch($Key);
 			}
-			if (self::$MemcacheOn)
+			elseif (self::$MemcacheOn)
 			{
 				return self::$Memcache -> get($Key);
 			}
@@ -94,7 +94,7 @@
 			{
 				$Status = $Status && apc_store($Key, $Value, $TTL);
 			}
-			if (self::$MemcacheOn)
+			elseif (self::$MemcacheOn)
 			{
 				// If the TTL is longer than 30 days, memcache considers it to be a Unix timestamp instead of seconds to live
 				if ($TTL > 2592000)
@@ -118,6 +118,8 @@
 		 */
 		public static function wrap($Key, $Callback = null)
 		{
+			$Value = false;
+
 			if (self::$APCOn)
 			{
 				$Value = self::get($Key);
@@ -127,8 +129,7 @@
 					self::set($Key, $Value);
 				}
 			}
-
-			if (self::$MemcacheOn)
+			elseif (self::$MemcacheOn)
 			{
 				$Value = self::$Memcache -> get($Key, $Callback);
 			}
@@ -152,14 +153,15 @@
 				return false;
 			}
 
-			if (self::$MemcacheOn)
-			{
-				$Result = self::$Memcache -> increment($Key, $Value);
-			}
 			if (self::$APCOn)
 			{
 				$Result = apc_inc($Key, (int)$Value);
 			}
+			elseif (self::$MemcacheOn)
+			{
+				$Result = self::$Memcache -> increment($Key, $Value);
+			}
+
 			return $Result;
 		}
 
@@ -179,14 +181,15 @@
 				return false;
 			}
 
-			if (self::$MemcacheOn)
-			{
-				$Result = self::$Memcache -> decrement($Key, $Value);
-			}
 			if (self::$APCOn)
 			{
 				$Result = apc_dec($Key, (int)$Value);
 			}
+			elseif (self::$MemcacheOn)
+			{
+				$Result = self::$Memcache -> decrement($Key, $Value);
+			}
+
 			return $Result;
 		}
 
@@ -194,16 +197,18 @@
 		 * Clears a specific key
 		 *
 		 * @param string Key
+		 *
+		 * @return boolean Operation status
 		 */
 		public static function clear($Key)
 		{
-			if (self::$MemcacheOn)
-			{
-				$Status = self::$Memcache -> delete($Key);
-			}
 			if (self::$APCOn)
 			{
 				$Status = apc_delete($Key);
+			}
+			elseif (self::$MemcacheOn)
+			{
+				$Status = self::$Memcache -> delete($Key);
 			}
 
 			return $Status;
@@ -211,17 +216,22 @@
 
 		/**
 		 * Clears everything
+		 *
+		 * @return boolean Operation status
 		 */
 		public static function clear_all()
 		{
+			$Status = false;
+
 			if (self::$APCOn)
 			{
 				$Status = apc_clear_cache('user');
 			}
-			if (self::$MemcacheOn)
+			elseif (self::$MemcacheOn)
 			{
 				$Status = self::$Memcache -> flush();
 			}
+
 			return $Status;
 		}
 
@@ -239,11 +249,13 @@
 			{
 				return apc_exists($Offset);
 			}
-			if (self::$MemcacheOn)
+			elseif (self::$MemcacheOn)
 			{
 				$Val = self::$Memcache -> get($Offset);
 				return !(self::$Memcache -> getResultCode() == Memcached::RES_NOTFOUND);
 			}
+
+			return false;
 		}
 
 		/**
