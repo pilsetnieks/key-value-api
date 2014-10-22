@@ -7,7 +7,7 @@
  * @package key-value-api
  * @uses pecl/memcached
  * @uses pecl/apc
- * @version 0.2.2
+ * @version 0.2.4
  * @author Martins Pilsetnieks
  */
 	class kv implements ArrayAccess
@@ -47,7 +47,7 @@
 
 			if ($MemcacheOptions && !empty($MemcacheOptions['Enabled']) && !class_exists('Memcached'))
 			{
-				throw new Excption('Memcached not available (Memcached extension, not Memcache)');
+				throw new Exception('Memcached not available (Memcached extension, not Memcache)');
 			}
 			elseif ($MemcacheOptions)
 			{
@@ -259,7 +259,7 @@
 		}
 
 		/**
-		 * Retrieves a value, see KV::Get
+		 * Retrieves a value, see kv::get
 		 *
 		 * @param string Key
 		 *
@@ -271,7 +271,7 @@
 		}
 
 		/**
-		 * Sets a value, see KV::Set
+		 * Sets a value, see kv::set
 		 *
 		 * @param string Key
 		 * @param mixed Value
@@ -284,7 +284,7 @@
 		}
 
 		/**
-		 * Clears a value, see KV::Clear
+		 * Clears a value, see kv::clear
 		 *
 		 * @param string Key
 		 *
