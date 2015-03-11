@@ -7,19 +7,22 @@
  * @package key-value-api
  * @uses pecl/memcached
  * @uses pecl/apc
- * @version 0.2.4
+ * @version 0.3.0
  * @author Martins Pilsetnieks
  */
 	class kv implements ArrayAccess
 	{
+		const DEFAULT_MEMCACHE_PORT = 11211;
+
 		private static $DefaultAPCOptions = array(
-			'Enabled' => true
+			'Enabled' => false
 		);
 		private static $DefaultMemcacheOptions = array(
 			'Enabled' => true,
 			'Servers' => array(
 				array('localhost', 11211)
-			)
+			),
+			'Consistent' => true
 		);
 
 		private static $APCOptions = array();
@@ -35,7 +38,7 @@
 		 */
 		public function __construct(array $APCOptions = null, array $MemcacheOptions = null)
 		{
-			if ($APCOptions && !empty($APCOptions['Enabled']) && !ini_get('apc.enabled') || !function_exists('apc_store'))
+			if ($APCOptions && !empty($APCOptions['Enabled']) && (!ini_get('apc.enabled') || !function_exists('apc_store')))
 			{
 				throw new Exception('APC not available');
 			}
@@ -55,8 +58,47 @@
 				self::$MemcacheOn = !empty(self::$MemcacheOptions['Enabled']);
 
 				self::$Memcache = new Memcached;
-				self::$Memcache -> addServers(self::$MemcacheOptions['Servers']);
+
+				if (!empty(self::$MemcacheOptions['Consistent']))
+				{
+					self::$Memcache -> setOptions(array(
+						Memcached::OPT_DISTRIBUTION => Memcached::DISTRIBUTION_CONSISTENT,
+						Memcached::OPT_LIBKETAMA_COMPATIBLE => true
+					));
+				}
+
+				$MemcacheServers = self::ParseMemcacheServers(self::$MemcacheOptions['Servers']);
+				self::$Memcache -> addServers($MemcacheServers);
 			}
+		}
+
+		private static function ParseMemcacheServers($Servers)
+		{
+			if (is_string($Servers))
+			{
+				$Servers = explode(';', $Servers);
+				$Servers = array_map('trim', $Servers);
+			}
+
+			if (is_array($Servers))
+			{
+				foreach ($Servers as $K => $Server)
+				{
+					if (is_string($Server))
+					{
+						$Servers[$K] = $Server = explode(':', $Server);
+					}
+
+					if (is_array($Servers[$K]) && empty($Server[1]))
+					{
+						$Servers[$K][1] = self::DEFAULT_MEMCACHE_PORT;
+					}
+				}
+
+				return $Servers;
+			}
+
+			throw new Exception('Memcached server configuration could not be read');
 		}
 
 		/**

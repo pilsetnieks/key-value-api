@@ -1,11 +1,23 @@
 <?php
 	require('key-value-api.php');
 
+//	$Servers = [
+//		['127.0.0.1', 11211],
+//		['localhost', 11211],
+//		['127.0.0.1']
+//	];
+
+	//$Servers = [
+	//	'127.0.0.1:11211', 'localhost:11211', '127.0.0.1'
+	//];
+
+	$Servers = '127.0.0.1:11211;localhost:11211;127.0.0.1';
+
 	try
 	{
 		$KV = new kv(
 			array('Enabled' => false),
-			array('Enabled' => true)
+			array('Enabled' => true, 'Servers' => $Servers)
 		);
 	}
 	catch (Exception $E)

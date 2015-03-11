@@ -1,0 +1,26 @@
+{
+	"name": "pilsetnieks/key-value-api",
+	"description": "Simple key-value cache API to abstract the underlying key-value store.",
+	"keywords": ["key-value", "memcache", "apc", "cache"],
+	"homepage": "https://github.com/pilsetnieks/key-value-api",
+	"version": "0.3.0",
+	"time": "2015-03-11",
+	"type": "library",
+	"license": ["MIT"],
+	"authors": [
+		{
+			"name": "Martins Pilsetnieks",
+			"email": "pilsetnieks@gmail.com",
+			"homepage": "http://pilsetnieks.com/"
+		}
+	],
+	"support": {
+		"email": "pilsetnieks+k-v-api@gmail.com"
+	},
+	"require": {
+		"php": ">= 5.3.0"
+	},
+	"autoload": {
+		"classmap": ["./"]
+	}
+}
