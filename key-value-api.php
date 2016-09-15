@@ -7,7 +7,7 @@
  * @package key-value-api
  * @uses pecl/memcached
  * @uses pecl/apc
- * @version 0.3.0
+ * @version 0.3.1
  * @author Martins Pilsetnieks
  */
 	class kv implements ArrayAccess
