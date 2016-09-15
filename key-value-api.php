@@ -62,7 +62,11 @@
 				if (!empty(self::$MemcacheOptions['Consistent']))
 				{
 					self::$Memcache -> setOptions(array(
+    						Memcached::OPT_CONNECT_TIMEOUT => 20,
 						Memcached::OPT_DISTRIBUTION => Memcached::DISTRIBUTION_CONSISTENT,
+						Memcached::OPT_SERVER_FAILURE_LIMIT => 5,
+						Memcached::OPT_REMOVE_FAILED_SERVERS => true,
+						Memcached::OPT_RETRY_TIMEOUT => 1,
 						Memcached::OPT_LIBKETAMA_COMPATIBLE => true
 					));
 				}
