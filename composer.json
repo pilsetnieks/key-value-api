@@ -3,8 +3,8 @@
 	"description": "Simple key-value cache API to abstract the underlying key-value store.",
 	"keywords": ["key-value", "memcache", "apc", "cache"],
 	"homepage": "https://github.com/pilsetnieks/key-value-api",
-	"version": "0.3.0",
-	"time": "2015-03-11",
+	"version": "0.3.1",
+	"time": "2016-09-15",
 	"type": "library",
 	"license": ["MIT"],
 	"authors": [
